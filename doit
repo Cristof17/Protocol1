@@ -1,0 +1,10 @@
+#!/bin/bash
+killall link 2> /dev/null
+killall server 2> /dev/null
+killall client 2> /dev/null
+
+
+./server 2 &> /dev/null &
+sleep 1
+
+./client 2 &> /dev/null

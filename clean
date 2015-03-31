@@ -1,0 +1,9 @@
+#!/bin/bash
+cd link_emulator
+make clean
+make link
+make
+cd ..
+make clean
+make
+sh run_experiment.sh 50 parity
