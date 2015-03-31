@@ -91,7 +91,7 @@ int main(int argc , char ** argv)
       if(TYPE == PARITY){
           printf("[SERVER] Core message is %s \n\r",r.payload);
           memcpy(command, r.payload+1 , r.len - 1 );
-          printf("[SERVER] Processed data is %s\n\r",command );
+          printf("[SERVER] Coredata is %s\n\r",command );
       }else
           memcpy(command , r.payload , r.len );
 
@@ -130,14 +130,13 @@ int main(int argc , char ** argv)
      }
 
      else if(equalsCommand(command) == SN){
-        memcpy(command , r.payload , MSGSIZE);
-        printf("[SERVER] Command is %s\n\r",r.payload);
-        printf("[SERVER] Second argument of cp is %s\n\r",getSecondArgument(command));
+        printf("[SERVER] Command is %s\n\r",command);
+        printf("[SERVER] Second argument of sn is %s\n\r",getSecondArgument(command));
 
         char filename[MSGSIZE];
 
         sendACK(&t);
-        createFile(getSecondArgument(r.payload),filename);
+        createFile(getSecondArgument(command),filename);
         int filesize = receiveFileSize(&r);
         sendACK(&t);
         writeInFile(filename ,filesize , &r , &t);
@@ -322,7 +321,7 @@ int main(int argc , char ** argv)
     while((citite = read(fd,buff, MSGSIZE - 1 )) > 0 ){
         memset(t , 0 , MSGSIZE);
         memcpy(t->payload+1,buff, citite);
-        t->len = strlen(t->payload +1 )+1;
+        t->len = citite + 1 ;
         t->payload[0] = checkParity(t);
 
        int response = send_message(t);
@@ -383,6 +382,7 @@ int main(int argc , char ** argv)
  }
 
   int receiveFileSize(msg * r){
+
      int response = recv_message(r);
 
      if(response > 0)
@@ -391,25 +391,53 @@ int main(int argc , char ** argv)
          printf("[SERVER] Error receiving file size for sn \n\r");
        return -1 ;
      }
+     if(TYPE == PARITY){
+      printf("[SERVER] File size for sn is %d\n\r",atoi(r->payload + 1));
+        return atoi(r->payload + 1) ;
+     }
      printf("[SERVER] File size for sn is %d\n\r",atoi(r->payload));
      return atoi(r->payload);
   }
 
+
+
    void writeInFile(char * path ,int nrBytes, msg * r , msg *t){
+   printf("[SERVER] write file path is  %s\n\r",path);
+   printf("[SERVER] write file nrBytes is %d \n\r",nrBytes);
+
      int fd = open(path, O_WRONLY | O_CREAT, 0666);
-     while(nrBytes > 0 ){
-       int res = recv_message(r);
-       if(res > 0){
-           printf("[SERVER] Successfully received file part for sn\n\r");
-           printf("[SERVER] Payload is %s\n\r",r->payload);
-           printf("[SERVER] Size of the payload is %ld\n\r",strlen(r->payload));
-           sendACK(t);
-           write(fd , r->payload , r->len);
-           nrBytes -= r->len;
-           printf("[SERVER] %d bytes to come \n\r",nrBytes);
-       }else{
-           printf("[SERVER] Error receiving file part for sn \n\r");
-       }
+
+     if(TYPE == NOPARITY){
+       while( > 0 ){
+          int res = recv_message(r);
+          if(res > 0){
+            printf("[SERVER] Successfully received file part for sn\n\r");
+            printf("[SERVER] Payload is %s\n\r",r->payload);
+            printf("[SERVER] Size of the payload is %ld\n\r",strlen(r->payload));
+            sendACK(t);
+            write(fd , r->payload, r->len);
+            nrBytes -= r->len;
+            printf("[SERVER] %d bytes to come \n\r",nrBytes);
+          }else{
+            printf("[SERVER] Error receiving file part for sn \n\r");
+        }
+     }
+     }else if (TYPE == PARITY){
+        while(nrBytes > 0){
+
+          int res = recv_message(r);
+          if(res > 0){
+             printf("[SERVER] Successfully received file part for sn \n\r");
+             printf("[SERVER] Payload is %s\n\r",r->payload + 1);
+             printf("[SERVER] Size of the payload is %d\n\r",r->len);
+             sendACK(t);
+             write(fd, r->payload + 1 , r->len -1);
+             nrBytes -= r->len -1;
+             printf("[SERVER] %d bytes to come \n\r",nrBytes);
+          }else{
+             printf("[SERVER] Error receiving file part for sn \n\r");
+          }
+        }
      }
      close (fd);
   }
