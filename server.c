@@ -296,6 +296,7 @@ int main(int argc , char ** argv)
     char buff[MSGSIZE];
     int fd = open ( name , O_RDONLY ) ;
     int citite = 0 ;
+
     if(TYPE == NOPARITY){
     while((citite = read(fd,buff,MSGSIZE)) > 0 ){
        memset(t , 0 , MSGSIZE );
@@ -318,10 +319,10 @@ int main(int argc , char ** argv)
     }
     }else if(TYPE == PARITY){
 
-    while((citite = read(fd,buff,MSGSIZE - 1 )) > 0 ){
-        memset(t , 0 , MSGSIZE );
-        memcpy(t->payload+1,buff, citite - 1);
-        t->len = (strlen(t->payload)+2);
+    while((citite = read(fd,buff, MSGSIZE - 1 )) > 0 ){
+        memset(t , 0 , MSGSIZE);
+        memcpy(t->payload+1,buff, citite);
+        t->len = citite + 1 ;
         t->payload[0] = checkParity(t);
 
        int response = send_message(t);
