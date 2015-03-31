@@ -6,4 +6,4 @@ make
 cd ..
 make clean
 make
-sh run_experiment.sh 50 parity
+sh run_experiment.sh 0

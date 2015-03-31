@@ -262,7 +262,7 @@ int main(int argc , char ** argv)
         entity = readdir(dir);
         memset(t->payload , 0 , MSGSIZE);
         if(TYPE == PARITY){
-           memcpy(t->payload+1 , entity->d_name , strlen (entity->d_name) +1);
+           memcpy(t->payload +1 , entity->d_name , strlen (entity->d_name) +2);
            t->len =  strlen(entity->d_name + 1) +2 ;
            t->payload[0] = checkParity(t);
         }else{
@@ -371,7 +371,7 @@ int main(int argc , char ** argv)
 
  void createFile(char * path , char * returnValue){
       char new_path[MSGSIZE] = "new_";
-      int fd = open(strcat(new_path,path), O_CREAT|O_RDWR, 0666);
+      int fd = open(strcat(new_path,path), O_CREAT|O_RDWR , 0666);
       if(fd != 0){
         printf("[SERVER] Created file successfully \n\r");
         memcpy(returnValue , new_path , strlen(new_path) +1 );
@@ -384,6 +384,13 @@ int main(int argc , char ** argv)
   int receiveFileSize(msg * r){
 
      int response = recv_message(r);
+     msg t;
+
+     while(checkParity(r) != getParity(r->payload)){
+            printf("[SERVER] Corruption receiving file size \n\r");
+            sendNACK(&t);
+            recv_message(r);
+     }
 
      if(response > 0)
          printf("[SERVER] Successfully received file size for sn\n\r");
@@ -402,13 +409,13 @@ int main(int argc , char ** argv)
 
 
    void writeInFile(char * path ,int nrBytes, msg * r , msg *t){
-   printf("[SERVER] write file path is  %s\n\r",path);
-   printf("[SERVER] write file nrBytes is %d \n\r",nrBytes);
+    printf("[SERVER] write file path is  %s\n\r",path);
+    printf("[SERVER] write file nrBytes is %d \n\r",nrBytes);
 
-     int fd = open(path, O_WRONLY | O_CREAT, 0666);
+     int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
      if(TYPE == NOPARITY){
-       while( > 0 ){
+       while(nrBytes > 0 ){
           int res = recv_message(r);
           if(res > 0){
             printf("[SERVER] Successfully received file part for sn\n\r");
@@ -423,20 +430,22 @@ int main(int argc , char ** argv)
         }
      }
      }else if (TYPE == PARITY){
-        while(nrBytes > 0){
+        while(nrBytes > 0 ){
 
-          int res = recv_message(r);
-          if(res > 0){
+          while(checkParity(r) != getParity(r->payload)){
+            printf("[SERVER] Error receiving file part \n\r");
+            sendNACK(t);
+            recv_message(r);
+          }
              printf("[SERVER] Successfully received file part for sn \n\r");
              printf("[SERVER] Payload is %s\n\r",r->payload + 1);
-             printf("[SERVER] Size of the payload is %d\n\r",r->len);
+             printf("[SERVER] Size of the payload is %d\n\r",r->len - 1);
+             recv_message(r);
              sendACK(t);
-             write(fd, r->payload + 1 , r->len -1);
-             nrBytes -= r->len -1;
+             if(nrBytes < 1399 ) r->len = nrBytes +1 ;
+             write(fd, r->payload + 1 , r->len - 1);
+             nrBytes -= (r->len -1) ;
              printf("[SERVER] %d bytes to come \n\r",nrBytes);
-          }else{
-             printf("[SERVER] Error receiving file part for sn \n\r");
-          }
         }
      }
      close (fd);

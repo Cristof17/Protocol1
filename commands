@@ -1,6 +1,4 @@
-cd 3
-ls .
-sn server
+cd 1
 ls .
 exit exit
 
