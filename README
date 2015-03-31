@@ -1,0 +1,52 @@
+323CA Rotsching Cristofor
+
+Implementarea protocolului am realizat-o in felul urmator :
+
+De fiecare data cand sosesc mesaje de la client , verific daca tipul de date primite
+corespund tipului de test (fara parity , cu parity , sau cu hamming ) ; Pentru
+a verifica tipul testului am luat o constanta globala TYPE care imi spune in
+diferite bucati de cod , daca ceea ce trebuie sa procesez este un mesaj normal,
+un mesaj corupt cu paritate , sau un mesaj corupt dupa codul hamming . Variabila
+TYPE este initializata la tipul de test imediat ce se intra in fuctia main .
+
+Pentru a verifica integritatea mesajului am creat functia checkParity() care calculeaza
+paritatea mesajului , iar pentru a extrage paritatea din mesaj atunci apelez functia
+getParity(). Cat timp paritatile celor doua mesaje nu corespunde atunci ii cer
+clientului un nou mesaj pana cand primesc un mesaj valid . Dupa ce am primit
+mesajul integral (care este compus din doua parit , comanda ce trebuie executata
+si argumentul comenzii ) . Pentru a le separa , imediat ce soseste mesajul extrag
+comanda intr-un buffer care va memorata pana la sosirea urmatorului mesaj intr-un
+buffer numit command . Pentru extragerea argumentului comenzilor apelez functia
+getSecondArgument(payload) care va returna doar argumentul comenzii .
+
+Pentru a identifica tipul comenzii , trebuie doar sa pasez ca argument comanda
+extrasa din mesaj pentru a fi verificata de functia equalsCommand, care va intoarce
+tipul comenzii . (tipul fiecarei comenzi este definit la inceputul fisierului prin
+#define , pentru a usura lizibilitatea codului .
+
+Primul nivel de verificare de comanda se intampla la comanda LS . In cazul in care
+comanda primita este de tip ls , atunci trimit ACK pentru a ii spune clientului
+ca am primit comanda sa , apoi schimb directorul curent folosind apelul de sistem ,
+chdir , . Apoi contorizez numarul de fisiere din directorul specificat ca argument.
+Functia responsabila de trimiterea numarului de fisiere din directorul primit in comanda
+este sendNumberOfFiles() .
+
+Comanda CP care realizeza transmiterea fisierului functioneza dupa specificatiile
+din enunt . Pentru a obtine dimensiunea fisierului care trebuie trimis am folosit
+fopen() impreuna cu ftell() din cadrul functiei sendFileSize().
+Transmiterea datelor din fisier se realizeaza intr-un while implementat in functia
+sendFile() . In aceasta functie am identificat doua moduri de a trimite un fiesier.
+Unul dintre aceste moduri este daca tipul testului in care este rulat programului
+nu are niciun fel de corupere a datelor , astfel nu este nevoie de un bit de control,
+iar al doilea mod de transmitere a datelor este realizat atunci cand tipul testului
+este cu o corupere de 50% . In amandoua cazurile conditia de ciclare in bucla while
+este ca atata timp cat exista in fisier date de citit sa le puna in mesaj si sa le
+trimita catre client , dupa care va primi ACK pentru fiecare mesaj .
+
+Pentru functia SN , scrierea datelor este realizata cu ajutorul comenzii write.
+In implementarea functiei writeFile() care are ca scop scrierea in fisier am
+implementat o bucla while . Conditia de ciclare a buclei while este sa se repete
+atata timp cat numarul de octeti pe care trebuie sa ii mai primesc sunt mai mari
+ca 0 . Avand in vedere faptul ca ultimul pachet care soseste poate sa aiba dimensiune
+mai mica decat dimensiunea maxima a unui mesaj , pases lungimea vectorului de date
+functiei write . 
